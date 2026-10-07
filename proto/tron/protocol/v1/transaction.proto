@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package tron.protocol.v1;
+
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/renegadik/crypto-payment-gateway/pkg/proto/tron/protocol/v1;tronpb";
+
+// Transaction содержит минимальную часть wire-протокола TRON, необходимую для
+// переводов TRX и TRC-20. Номера полей совпадают с протоколом TRON.
+message Transaction {
+  // Contract оборачивает одну поддерживаемую операцию изменения состояния.
+  message Contract {
+    // ContractType содержит только операции, разрешённые Crypto Vault.
+    enum ContractType {
+      CONTRACT_TYPE_UNSPECIFIED = 0;
+      CONTRACT_TYPE_TRANSFER_CONTRACT = 1;
+      CONTRACT_TYPE_TRIGGER_SMART_CONTRACT = 31;
+    }
+
+    ContractType type = 1;
+    google.protobuf.Any parameter = 2;
+    int32 permission_id = 5;
+  }
+
+  // Raw содержит данные, которые TRON хеширует и подписывает.
+  message Raw {
+    bytes ref_block_bytes = 1;
+    bytes ref_block_hash = 4;
+    int64 expiration = 8;
+    repeated Contract contract = 11;
+    int64 timestamp = 14;
+    int64 fee_limit = 18;
+  }
+
+  Raw raw_data = 1;
+  repeated bytes signature = 2;
+}
+
+// TransferContract переводит нативный TRX в минимальных единицах sun.
+message TransferContract {
+  bytes owner_address = 1;
+  bytes to_address = 2;
+  int64 amount = 3;
+}
+
+// TriggerSmartContract вызывает развёрнутый смарт-контракт.
+message TriggerSmartContract {
+  bytes owner_address = 1;
+  bytes contract_address = 2;
+  int64 call_value = 3;
+  bytes data = 4;
+  int64 call_token_value = 5;
+  int64 token_id = 6;
+}

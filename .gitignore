@@ -1,0 +1,9 @@
+AGENTS.md
+.env
+.env.*
+!.env.example
+/bin/
+/coverage.out
+/coverage.html
+*.test
+.DS_Store

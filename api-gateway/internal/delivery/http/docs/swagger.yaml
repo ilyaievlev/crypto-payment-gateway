@@ -1,0 +1,40 @@
+basePath: /
+info:
+  contact: {}
+  description: Каркас сервиса. API для бизнеса пока не реализован.
+  title: Crypto Payment Gateway API
+  version: 0.1.0
+paths:
+  /healthz:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Проверка жизни процесса
+      tags:
+      - monitoring
+  /readyz:
+    get:
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "503":
+          description: Service Unavailable
+          schema:
+            type: string
+      summary: Проверка готовности процесса
+      tags:
+      - monitoring
+swagger: "2.0"

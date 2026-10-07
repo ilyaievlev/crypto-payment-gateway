@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package cryptovault.v1;
+
+option go_package = "github.com/renegadik/crypto-payment-gateway/pkg/proto/cryptovault/v1;cryptovaultv1";
+
+// TronContextV1 содержит актуальное состояние сети для построения транзакции.
+// BlockID должен быть 32-байтовым идентификатором BlockNumber; предпочтительно
+// использовать подтверждённый solidified-блок.
+message TronContextV1 {
+  uint64 block_number = 1;
+  bytes block_id = 2;
+  int64 timestamp_ms = 3;
+  int64 expiration_ms = 4;
+  int64 fee_limit_sun = 5;
+}

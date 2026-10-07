@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package common.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/renegadik/crypto-payment-gateway/pkg/proto/common/v1;commonv1";
+
+// EventMetadata identifies an event independently from Kafka delivery attempts.
+message EventMetadata {
+  string event_id = 1;
+  google.protobuf.Timestamp occurred_at = 2;
+  string correlation_id = 3;
+  uint32 schema_version = 4;
+}

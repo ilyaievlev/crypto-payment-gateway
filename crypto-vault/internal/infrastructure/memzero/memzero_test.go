@@ -8,9 +8,7 @@ import (
 
 // TestBytes проверяет, что Bytes обнуляет весь переданный срез.
 func TestBytes(t *testing.T) {
-	secret := []byte("sensitive material")
-
-	Bytes(secret)
-
-	require.Equal(t, make([]byte, len(secret)), secret)
+	value := []byte("чувствительные данные")
+	Bytes(value)
+	require.Equal(t, make([]byte, len(value)), value)
 }

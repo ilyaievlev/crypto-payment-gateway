@@ -8,6 +8,8 @@ import (
 	"syscall"
 
 	delivery "github.com/renegadik/crypto-payment-gateway/payment-core/internal/delivery/http"
+	"github.com/renegadik/crypto-payment-gateway/payment-core/internal/infrastructure/tronvault"
+	"github.com/renegadik/crypto-payment-gateway/payment-core/internal/repository/postgres"
 	"github.com/renegadik/crypto-payment-gateway/payment-core/internal/usecase"
 	"github.com/renegadik/crypto-payment-gateway/pkg/config"
 	"github.com/renegadik/crypto-payment-gateway/pkg/logging"
@@ -38,7 +40,23 @@ func run() error {
 	logger := logging.New(os.Stdout, "payment-core", cfg.LogLevel)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
-	// Здесь репозитории и инфраструктурные адаптеры подключаются к сценариям.
-	checker := usecase.NewHealth()
-	return server.Run(ctx, logger, cfg.HTTPAddr, cfg.GRPCAddr, delivery.NewHandler(checker))
+	repository, err := postgres.NewTRONInvoices(ctx, os.Getenv("DATABASE_URL"))
+	if err != nil {
+		return err
+	}
+	defer repository.Close()
+	vaultEndpoint := os.Getenv("CRYPTO_VAULT_ENDPOINT")
+	if vaultEndpoint == "" {
+		vaultEndpoint = "http://crypto-vault:8080"
+	}
+	addresses, err := tronvault.New(vaultEndpoint)
+	if err != nil {
+		return err
+	}
+	invoices, err := usecase.NewTRONInvoices(repository, addresses)
+	if err != nil {
+		return err
+	}
+	checker := usecase.NewHealth(repository, addresses)
+	return server.Run(ctx, logger, cfg.HTTPAddr, cfg.GRPCAddr, delivery.NewHandler(checker, invoices))
 }

@@ -13,6 +13,8 @@ var (
 	ErrInvalidTransferIntent  = errors.New("invalid transfer intent")
 	ErrInvalidNetworkContext  = errors.New("invalid network context")
 	ErrSeedUnavailable        = errors.New("root seed unavailable")
+	ErrSeedAlreadyInitialized = errors.New("root seed already initialized")
+	ErrSeedStoreFailed        = errors.New("root seed storage failed")
 	ErrDerivationFailed       = errors.New("failed to derive key or address")
 	ErrBuildTransactionFailed = errors.New("failed to build transaction")
 	ErrSigningFailed          = errors.New("failed to sign transaction")
@@ -106,6 +108,15 @@ type SeedProvider interface {
 		network Network,
 		use func(seed []byte) error,
 	) error
+}
+
+// SeedRepository хранит только зашифрованный корневой сид и никогда не получает
+// его открытое содержимое.
+type SeedRepository interface {
+	// LoadEncryptedSeed возвращает ciphertext для сети либо ErrSeedUnavailable.
+	LoadEncryptedSeed(ctx context.Context, network Network) ([]byte, error)
+	// CreateEncryptedSeed сохраняет ciphertext только если сид сети ещё не создан.
+	CreateEncryptedSeed(ctx context.Context, network Network, ciphertext []byte) error
 }
 
 // Engine объединяет криптографические компоненты ровно одной сети.

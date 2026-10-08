@@ -3,3 +3,27 @@
 //   sqlc v1.28.0
 
 package db
+
+import (
+	"github.com/jackc/pgx/v5/pgtype"
+)
+
+type ChainWorkerTronTransfer struct {
+	TransactionID string
+	EventIndex    int32
+	BlockNumber   int64
+	FromAddress   string
+	ToAddress     string
+	Asset         string
+	Amount        pgtype.Numeric
+}
+
+type PaymentCoreTronInvoice struct {
+	ID             pgtype.UUID
+	IdempotencyKey pgtype.Text
+	KeyIndex       int64
+	Address        string
+	Asset          string
+	ExpectedAmount pgtype.Numeric
+	CreatedAt      pgtype.Timestamptz
+}

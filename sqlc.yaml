@@ -10,3 +10,23 @@ sql:
         sql_package: pgx/v5
         emit_interface: true
         emit_empty_slices: true
+  - engine: postgresql
+    schema: crypto-vault/internal/repository/postgres/schema.sql
+    queries: crypto-vault/internal/repository/postgres/queries.sql
+    gen:
+      go:
+        package: db
+        out: crypto-vault/internal/repository/postgres/db
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true
+  - engine: postgresql
+    schema: chain-worker/internal/repository/postgres/schema.sql
+    queries: chain-worker/internal/repository/postgres/queries.sql
+    gen:
+      go:
+        package: db
+        out: chain-worker/internal/repository/postgres/db
+        sql_package: pgx/v5
+        emit_interface: true
+        emit_empty_slices: true

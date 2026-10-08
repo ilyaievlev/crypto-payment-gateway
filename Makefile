@@ -9,15 +9,17 @@ SERVICE ?= api-gateway
 SERVICES := api-gateway payment-core chain-worker webhook-sender crypto-vault
 BUF_BASE ?= .git#branch=main
 
-.PHONY: help bootstrap env tools generate proto sql mocks swagger fmt test lint vet check build run up down logs ps apps stop-apps smoke topics migrate migrate-down compose-check breaking doctor
+.PHONY: help bootstrap env tools generate proto sql mocks swagger fmt test test-tron-nile lint vet check build run up down logs ps apps stop-apps smoke topics migrate migrate-down vault-secret vault-init compose-check breaking doctor
 help:
 	@echo 'make bootstrap       Install pinned tools, dependencies, generate code'
 	@echo 'make up              Start PostgreSQL and Kafka (Docker required)'
-	@echo 'make migrate         Apply payment-core migrations'
+	@echo 'make migrate         Apply all service database migrations'
 	@echo 'make topics          Create local event topics'
 	@echo 'make run SERVICE=... Run a service on the host'
 	@echo 'make apps            Build and start all bootstrap services in Docker'
 	@echo 'make check           Verify formatting, tests, vet, lint, proto and Compose'
+	@echo 'make test-tron-nile  Run the live read-only check against TRON Nile'
+	@echo 'make vault-init      Создать TRON-кошелёк и показать recovery-фразу один раз'
 	@echo 'make generate        Generate protobuf, sqlc, mocks, Swagger'
 	@echo 'make down            Stop containers; keep local data volumes'
 	@echo 'make doctor          Inspect local tool and daemon availability'
@@ -50,6 +52,8 @@ fmt:
 	gofmt -w api-gateway payment-core chain-worker webhook-sender crypto-vault pkg
 test:
 	go test -race -count=1 ./...
+test-tron-nile:
+	TRON_NILE_INTEGRATION=1 go test -count=1 ./chain-worker/internal/infrastructure/tron -run '^TestNileConnectivity$$'
 vet:
 	go vet ./...
 lint:
@@ -81,10 +85,25 @@ topics: env
 	$(DC) run --rm kafka-init
 migrate: env
 	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/payment-core postgres "$$DATABASE_URL" up
+	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/crypto-vault postgres "$$DATABASE_URL" up
+	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/chain-worker postgres "$$DATABASE_URL" up
 migrate-down: env
+	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/chain-worker postgres "$$DATABASE_URL" down
+	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/crypto-vault postgres "$$DATABASE_URL" down
 	@set -a; . ./.env; set +a; "$(GOBIN)/goose" -dir deploy/migrations/payment-core postgres "$$DATABASE_URL" down
+vault-secret:
+	@if [ -L .secrets ] || [ -L .secrets/vault-password ]; then echo 'Секретный путь не должен быть символической ссылкой' >&2; exit 1; fi
+	@mkdir -p .secrets
+	@chmod 700 .secrets
+	@if [ -e .secrets/vault-password ] && [ ! -f .secrets/vault-password ]; then echo 'Путь пароля должен быть обычным файлом' >&2; exit 1; fi
+	@if [ -e .secrets/vault-password ]; then chmod 600 .secrets/vault-password; else umask 077; openssl rand -base64 48 > .secrets/vault-password; fi
+vault-init: env
+	$(DC) up -d --wait postgres
+	$(MAKE) migrate
+	$(MAKE) vault-secret
+	$(DC) --profile apps run --rm crypto-vault init-seed
 compose-check:
-	$(COMPOSE) --env-file .env.example -f deploy/docker-compose.yml --profile apps config --quiet
+	VAULT_PASSWORD_SOURCE=/dev/null $(COMPOSE) --env-file .env.example -f deploy/docker-compose.yml --profile apps config --quiet
 breaking:
 	$(GOBIN)/buf breaking --against '$(BUF_BASE)'
 doctor:

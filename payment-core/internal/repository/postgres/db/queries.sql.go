@@ -7,7 +7,167 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
+
+const createTRONInvoice = `-- name: CreateTRONInvoice :one
+INSERT INTO payment_core.tron_invoices (idempotency_key, key_index, address, expected_amount)
+VALUES (NULLIF($1::text, ''), $2, $3, $4)
+ON CONFLICT (idempotency_key) DO UPDATE SET idempotency_key = EXCLUDED.idempotency_key
+RETURNING id::text, key_index, address, asset, expected_amount::text, created_at
+`
+
+type CreateTRONInvoiceParams struct {
+	Column1        string
+	KeyIndex       int64
+	Address        string
+	ExpectedAmount pgtype.Numeric
+}
+
+type CreateTRONInvoiceRow struct {
+	ID             string
+	KeyIndex       int64
+	Address        string
+	Asset          string
+	ExpectedAmount string
+	CreatedAt      pgtype.Timestamptz
+}
+
+func (q *Queries) CreateTRONInvoice(ctx context.Context, arg CreateTRONInvoiceParams) (CreateTRONInvoiceRow, error) {
+	row := q.db.QueryRow(ctx, createTRONInvoice,
+		arg.Column1,
+		arg.KeyIndex,
+		arg.Address,
+		arg.ExpectedAmount,
+	)
+	var i CreateTRONInvoiceRow
+	err := row.Scan(
+		&i.ID,
+		&i.KeyIndex,
+		&i.Address,
+		&i.Asset,
+		&i.ExpectedAmount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const findTRONInvoiceByIdempotencyKey = `-- name: FindTRONInvoiceByIdempotencyKey :one
+SELECT id::text, key_index, address, asset, expected_amount::text, created_at
+FROM payment_core.tron_invoices
+WHERE idempotency_key = $1
+`
+
+type FindTRONInvoiceByIdempotencyKeyRow struct {
+	ID             string
+	KeyIndex       int64
+	Address        string
+	Asset          string
+	ExpectedAmount string
+	CreatedAt      pgtype.Timestamptz
+}
+
+func (q *Queries) FindTRONInvoiceByIdempotencyKey(ctx context.Context, idempotencyKey pgtype.Text) (FindTRONInvoiceByIdempotencyKeyRow, error) {
+	row := q.db.QueryRow(ctx, findTRONInvoiceByIdempotencyKey, idempotencyKey)
+	var i FindTRONInvoiceByIdempotencyKeyRow
+	err := row.Scan(
+		&i.ID,
+		&i.KeyIndex,
+		&i.Address,
+		&i.Asset,
+		&i.ExpectedAmount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getNextTRONAddressIndex = `-- name: GetNextTRONAddressIndex :one
+SELECT nextval('payment_core.tron_address_index_seq')::bigint
+`
+
+func (q *Queries) GetNextTRONAddressIndex(ctx context.Context) (int64, error) {
+	row := q.db.QueryRow(ctx, getNextTRONAddressIndex)
+	var column_1 int64
+	err := row.Scan(&column_1)
+	return column_1, err
+}
+
+const getTRONInvoiceByID = `-- name: GetTRONInvoiceByID :one
+SELECT id::text, key_index, address, asset, expected_amount::text, created_at
+FROM payment_core.tron_invoices
+WHERE id::text = $1
+`
+
+type GetTRONInvoiceByIDRow struct {
+	ID             string
+	KeyIndex       int64
+	Address        string
+	Asset          string
+	ExpectedAmount string
+	CreatedAt      pgtype.Timestamptz
+}
+
+func (q *Queries) GetTRONInvoiceByID(ctx context.Context, id pgtype.UUID) (GetTRONInvoiceByIDRow, error) {
+	row := q.db.QueryRow(ctx, getTRONInvoiceByID, id)
+	var i GetTRONInvoiceByIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.KeyIndex,
+		&i.Address,
+		&i.Asset,
+		&i.ExpectedAmount,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const listTRONInvoiceTransfers = `-- name: ListTRONInvoiceTransfers :many
+SELECT t.transaction_id, t.event_index, t.block_number, t.from_address,
+       t.to_address, t.asset, t.amount::text
+FROM payment_core.tron_invoices i
+JOIN chain_worker.tron_transfers t ON t.to_address = i.address
+WHERE i.id::text = $1 AND t.asset = i.asset
+ORDER BY t.block_number, t.transaction_id, t.event_index
+`
+
+type ListTRONInvoiceTransfersRow struct {
+	TransactionID string
+	EventIndex    int32
+	BlockNumber   int64
+	FromAddress   string
+	ToAddress     string
+	Asset         string
+	TAmount       string
+}
+
+func (q *Queries) ListTRONInvoiceTransfers(ctx context.Context, id pgtype.UUID) ([]ListTRONInvoiceTransfersRow, error) {
+	rows, err := q.db.Query(ctx, listTRONInvoiceTransfers, id)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []ListTRONInvoiceTransfersRow{}
+	for rows.Next() {
+		var i ListTRONInvoiceTransfersRow
+		if err := rows.Scan(
+			&i.TransactionID,
+			&i.EventIndex,
+			&i.BlockNumber,
+			&i.FromAddress,
+			&i.ToAddress,
+			&i.Asset,
+			&i.TAmount,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
 
 const ping = `-- name: Ping :one
 SELECT 1::integer AS alive

@@ -5,9 +5,11 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN case "$SERVICE" in api-gateway|payment-core|chain-worker|webhook-sender|crypto-vault) ;; *) exit 1 ;; esac && \
-    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server "./$SERVICE/cmd/server"
+    CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/server "./$SERVICE/cmd/server" && \
+    mkdir -p /out/crypto-vault-keys
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=build /out/server /server
+COPY --from=build --chown=nonroot:nonroot /out/server /server
+COPY --from=build --chown=nonroot:nonroot /out/crypto-vault-keys/ /var/lib/crypto-vault/keys/
 USER nonroot:nonroot
 ENTRYPOINT ["/server"]

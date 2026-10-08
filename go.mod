@@ -10,6 +10,7 @@ require (
 	github.com/segmentio/kafka-go v0.4.48
 	github.com/stretchr/testify v1.10.0
 	github.com/swaggo/swag v1.16.4
+	github.com/tyler-smith/go-bip39 v1.1.0
 	go.uber.org/mock v0.5.0
 	google.golang.org/grpc v1.70.0
 	google.golang.org/protobuf v1.36.5
@@ -18,6 +19,8 @@ require (
 require (
 	github.com/btcsuite/btcd/chaincfg/chainhash v1.1.0 // indirect
 	github.com/decred/dcrd/dcrec/secp256k1/v4 v4.0.1 // indirect
+	github.com/jackc/puddle/v2 v2.2.2 // indirect
+	golang.org/x/sync v0.10.0 // indirect
 )
 
 require (

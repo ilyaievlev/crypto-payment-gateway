@@ -3,6 +3,7 @@ AGENTS.md
 .env.*
 !.env.example
 /bin/
+/.secrets/
 /coverage.out
 /coverage.html
 *.test

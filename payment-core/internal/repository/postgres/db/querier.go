@@ -6,9 +6,16 @@ package db
 
 import (
 	"context"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 type Querier interface {
+	CreateTRONInvoice(ctx context.Context, arg CreateTRONInvoiceParams) (CreateTRONInvoiceRow, error)
+	FindTRONInvoiceByIdempotencyKey(ctx context.Context, idempotencyKey pgtype.Text) (FindTRONInvoiceByIdempotencyKeyRow, error)
+	GetNextTRONAddressIndex(ctx context.Context) (int64, error)
+	GetTRONInvoiceByID(ctx context.Context, id pgtype.UUID) (GetTRONInvoiceByIDRow, error)
+	ListTRONInvoiceTransfers(ctx context.Context, id pgtype.UUID) ([]ListTRONInvoiceTransfersRow, error)
 	Ping(ctx context.Context) (int32, error)
 }
 

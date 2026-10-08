@@ -13,7 +13,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	"github.com/renegadik/crypto-payment-gateway/crypto-vault/internal/domain"
-	"github.com/renegadik/crypto-payment-gateway/crypto-vault/internal/infrastructure/crypto_engine/internal/memzero"
+	"github.com/renegadik/crypto-payment-gateway/crypto-vault/internal/infrastructure/memzero"
 )
 
 const maxUnsignedTransactionSize = 1024 * 1024
